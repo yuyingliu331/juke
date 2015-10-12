@@ -1,10 +1,11 @@
 const dir = process.argv[2]
-const fs = require('fs')
+const fs = require('fs-extra')
 const Promise = require('bluebird')
 const pathLib = require('path')
 const helper = require('./helper')
 const _ = require('lodash')
 const metadata = require('./metadataWrapper')
+Promise.promisifyAll(fs);
 
 const mongoose = require('mongoose')
 const connectToDb = require('../server/db')
@@ -79,6 +80,11 @@ connectToDb.bind({ docsToSave: {} })
       .value())
   })
 
+  // empty the audio folder (or create it if it does not yet exists)
+  .tap(function() {
+    return fs.emptyDirAsync(filesDir);
+  })
+
   // move the files
   .then(function(songs) {
     this.songs = songs
@@ -126,4 +132,5 @@ connectToDb.bind({ docsToSave: {} })
   .catch(function(e) {
     console.error(e)
     console.error(e.stack)
+    process.exit()
   })
