@@ -10,6 +10,7 @@ schema.methods.getSongs = function() {
   return mongoose
     .model('Song')
     .find({ artists: this._id })
+    .populate('artists')
 }
 
 schema.methods.getAlbums = function() {
