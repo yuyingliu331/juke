@@ -59,7 +59,8 @@ router.get('/:playlistId/songs', (req, res) => res.json(req.playlist.songs) )
 router.post('/:playlistId/songs', function(req, res, next) {
   req.playlist.songs.addToSet(req.body.song)
   req.playlist.save()
-    .then( (playlist) => res.status(201).json(playlist) )
+    .then( () => mongoose.model('Song').findById(req.body.song._id || req.body.song).populate('artists') )
+    .then( (song) => res.status(201).json(song) )
     .then(null, next)
 })
 
