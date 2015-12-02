@@ -17,6 +17,7 @@ router.param('albumId', function(req, res, next, id) {
   mongoose.model('Album')
     .findById(id)
     .populate('artists songs')
+    .deepPopulate('songs.artists')
     .then(function(album) {
       if(!album) throw new Error('not found!')
       req.album = album

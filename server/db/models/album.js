@@ -1,6 +1,7 @@
 const mongoose = require('mongoose'),
       songListPlugin = require('../plugins/songList'),
-      findOrCreate = require('../plugins/findOrCreate')
+      findOrCreate = require('../plugins/findOrCreate'),
+      deepPopulate = require('mongoose-deep-populate')(mongoose);
 
 const Schema = mongoose.Schema
 
@@ -15,5 +16,6 @@ var schema = new Schema({
 // check it out!
 schema.plugin(songListPlugin)
 schema.plugin(findOrCreate)
+schema.plugin(deepPopulate);
 
 module.exports = mongoose.model('Album', schema)
