@@ -43,3 +43,16 @@ router.get('/:albumId.image', function (req, res, next) {
 router.get('/:albumId', function (req, res) {
   res.json(req.album);
 });
+
+router.get('/:albumId/songs/', function (req, res) {
+  res.json(req.album.songs);
+});
+
+router.get('/:albumId/songs/:songId', function (req, res) {
+  var songToSend;
+  req.album.songs.forEach(song => {
+    if (song._id == req.params.songId) songToSend = song;
+  });
+  if (!songToSend) throw new Error('not found!');
+  res.json(songToSend);
+});
