@@ -66,8 +66,8 @@ router.post('/:playlistId/songs', function (req, res, next) {
   .then(null, next);
 });
 
-router.delete('/:playlistId/songs', function (req, res, next) {
-  req.playlist.songs.pull(req.body.song);
+router.delete('/:playlistId/songs/:songId', function (req, res, next) {
+  req.playlist.songs.pull(req.params.songId);
   req.playlist.save()
   .then(function () {
     res.status(204);
