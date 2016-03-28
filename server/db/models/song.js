@@ -7,7 +7,9 @@ const schema = new Schema({
   name: { type: String, required: true, trim: true },
   artists: [{ type: Schema.Types.ObjectId, ref: 'Artist' }],
   genres: [String],
-  extension: { type: String }
+  buffer: { type: Buffer, required: true, select: false },
+  extension: { type: String, required: true },
+  size: { type: Number, required: true }
 });
 
 schema.methods.getAlbums = function () {

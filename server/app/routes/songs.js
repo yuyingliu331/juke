@@ -32,7 +32,12 @@ router.param('songId', function (req, res, next, id) {
 router.get('/:songId.audio', function (req, res, next) {
   if(!req.song.extension) return next(new Error('No audio for song'));
   res.set('Content-Type', mime.lookup(req.song.extension));
-  res.sendFile(path.join(process.cwd(), 'server/audio', req.song.id));
+  res.set('Content-Length', req.song.size);
+  mongoose.model('Song')
+  .findById(req.params.songId)
+  .select('buffer')
+  .stream({ transform: song => song.buffer })
+  .pipe(res);
 });
 
 router.get('/:songId.image', function (req, res, next) {

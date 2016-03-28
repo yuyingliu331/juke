@@ -2,6 +2,10 @@
 
 // arguments
 const dir = process.argv[2];
+if (!dir) {
+  console.error('Please provide the path to your music folder.');
+  process.exit();
+}
 // built-in modules
 const pathLib = require('path');
 // installed modules
@@ -15,7 +19,6 @@ const helper = require('./helper');
 const metadata = require('./metadataWrapper');
 const connectToDb = require('../server/db');
 
-const filesDir = pathLib.join(process.cwd(), 'server/audio');
 const Song = mongoose.model('Song');
 Promise.promisifyAll(fs);
 
@@ -31,11 +34,17 @@ const clearDb = function () {
   });
 };
 
+function formatSize (bytes) {
+  return Math.round(bytes/1000)/1000 + ' MB';
+}
+
 connectToDb.bind({ docsToSave: {} })
 .then(function () { // get song metadata and clear db at same time
+  console.log('reading file metadata and emptying database');
   return Promise.join(extractMetaData(dir), clearDb());
 })
 .spread(function (metaData, removeResponses) { // create the artists
+  console.log('creating unique artists by name');
   this.files = metaData;
   let artists = _(this.files)
     .pluck('artist')
@@ -47,6 +56,7 @@ connectToDb.bind({ docsToSave: {} })
   });
 })
 .then(function (artists) { // create the albums
+  console.log('creating albums by name');
   this.artists = _.indexBy(artists, 'name');
   let albums = _(this.files)
     .pluck('album')
@@ -57,40 +67,31 @@ connectToDb.bind({ docsToSave: {} })
   });
 })
 .then(function (albums) { // create the songs
+  console.log('creating songs and reading in files');
   this.albums = _.indexBy(albums, 'name');
-  this.files = this.files.map(function (file) {
+  this.totalSize = 0;
+  let songs = this.files.map(function (file) {
     file.song = new Song({
       name: file.title,
       artists: file.artist.map(a => this.artists[a], this),
-      genres: file.genre
+      genres: file.genre,
+      extension: pathLib.extname(file.path),
     });
-    file.song.extension = pathLib.extname(file.path);
-    return file;
+    return fs.readFileAsync(file.path)
+    .then(buffer => {
+      console.log(chalk.grey(file.song.name + ' — ' + formatSize(buffer.length)));
+      this.totalSize += buffer.length;
+      file.song.buffer = buffer;
+      file.song.size = buffer.length;
+      return file.song.save();
+    });
   }, this);
-  let songs = _(this.files)
-    .pluck('song')
-    .invoke('save')
-    .value();
   return Promise.all(songs);
-})
-.tap(function () { // empty audio folder (or create if it does not yet exist)
-  return fs.emptyDirAsync(filesDir);
-})
-.then(function (songs) { // move the files
-  this.songs = songs;
-  return Promise.map(this.files, function (file) {
-    return new Promise(function (resolve, reject) {
-      let readStream = fs.createReadStream(file.path);
-      let writeStream = fs.createWriteStream(pathLib.join(filesDir, file.song.id));
-      readStream.on('error', reject);
-      writeStream.on('error', reject);
-      writeStream.on('finish', resolve);
-      readStream.pipe(writeStream);
-    });
-  });
 })
 .then(function () { //associate the songs with their albums
   // push into albums' song arrays
+  console.log('seeded ' + this.files.length + ' songs (' + formatSize(this.totalSize) + ')');
+  console.log('adding songs to each album');
   this.files.forEach(file => {
     var album = this.albums[file.album];
     album.songs.push(file.song);
@@ -103,11 +104,11 @@ connectToDb.bind({ docsToSave: {} })
   let albums = _(this.albums)
     .values()
     .invoke('save')
-    .value()
+    .value();
   return Promise.all(albums);
 })
 .then(function () {
-  console.log(chalk.green('complete!'));
+  console.log(chalk.green('seeding complete!'));
   process.exit(0);
 })
 .catch(function (err) {

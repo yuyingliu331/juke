@@ -28,12 +28,11 @@ module.exports = function(schema) {
     // don't run this hook if songs haven't changed
     let self = this
     if(!this.isModified('songs')) return next()
-  
+
     this
       .populate('songs')
       .execPopulate() //needed to get a promise
       .then(function(songListDoc) {
-        console.log(songListDoc)
         return songListDoc.songs
           // pluck out each songs artist array
           .map( song => song.artists )
