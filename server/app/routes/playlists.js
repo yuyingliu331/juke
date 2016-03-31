@@ -27,6 +27,7 @@ router.param('playlistId', function (req, res, next, id) {
   mongoose.model('Playlist')
   .findById(id)
   .populate('artists songs')
+  .deepPopulate('songs.artists')
   .then(function (playlist) {
     if(!playlist) throw new Error('not found!');
     req.playlist = playlist;
@@ -70,7 +71,7 @@ router.delete('/:playlistId/songs/:songId', function (req, res, next) {
   req.playlist.songs.pull(req.params.songId);
   req.playlist.save()
   .then(function () {
-    res.status(204);
+    res.status(204).end();
   })
   .then(null, next);
 });
