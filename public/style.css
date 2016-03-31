@@ -22,13 +22,13 @@ sidebar {
     padding: 15px; }
   sidebar section > * {
     padding: 0 15px; }
-  sidebar .playlist-item {
-    transition: border-left, 0.5s; }
-    sidebar .playlist-item a {
+  sidebar .menu-item {
+    transition: border-left, 0.2s; }
+    sidebar .menu-item a {
       color: #c8c8c8; }
-      sidebar .playlist-item a:hover {
+      sidebar .menu-item a:hover {
         color: white; }
-    sidebar .playlist-item.active, sidebar .playlist-item:hover {
+    sidebar .menu-item.active, sidebar .menu-item:hover {
       border-left: 3px solid #00bc8c; }
 
 footer {
