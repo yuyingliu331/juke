@@ -37,6 +37,7 @@ module.exports = db.define('album', {
   },
   hooks: { // automatically adds an artist list if we have songs
     afterFind: function (queryResult) {
+      if (!queryResult) return;
       if (!Array.isArray(queryResult)) queryResult = [queryResult];
       queryResult.forEach(item => item.addArtistList());
     }

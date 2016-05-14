@@ -68,6 +68,8 @@ Promise.resolve(db.drop({ cascade: true })) // clear the database
 .then(function () { // create the songs
   console.log('creating songs and reading in files');
   this.totalSize = 0;
+  let savedCount = 0;
+  let limit = this.analyzedFiles.length;
   let allSongsProcessed = this.analyzedFiles.map(function (file) {
     // create initial un-persisted song instance
     file.song = models.Song.build({
@@ -81,15 +83,16 @@ Promise.resolve(db.drop({ cascade: true })) // clear the database
     // save binary data into song
     return fs.readFileAsync(file.path)
     .then(buffer => {
-      console.log(chalk.grey('read ' + file.song.name));
+      console.log(chalk.grey('read: ' + file.song.name));
       this.totalSize += buffer.length;
       file.song.buffer = buffer;
       file.song.size = buffer.length;
       return file.song.save();
     })
     .then(song => {
+      savedCount++;
       file.song = song;
-      console.log(chalk.green('✓') + chalk.grey(' saved ' + song.name + ' — ' + formatSize(song.size)));
+      console.log(chalk.green('✓') + chalk.grey(` saved: ${song.name} — ${formatSize(song.size)} (${savedCount}/${limit})`));
       // write to the song-artist & song-album join tables
       let madeArtistAssociations = song.addArtists(artistIds);
       let madeAlbumAssociation = song.setAlbum(albumId);
