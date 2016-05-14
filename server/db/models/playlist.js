@@ -29,6 +29,7 @@ module.exports = db.define('playlist', {
   instanceMethods: {
     addArtistList: addArtistList,
     addAndReturnSong: function (songId) { // `addSong` doesn't promise a song.
+      songId = String(songId);
       const addedToList = this.addSong(songId);
       const songFromDb = db.model('song').findById(songId);
       return DataTypes.Promise.all([addedToList, songFromDb])
