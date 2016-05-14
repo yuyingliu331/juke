@@ -1,26 +1,28 @@
 'use strict';
 
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
-const findOrCreate = require('../plugins/findOrCreate');
+const db = require('../db');
+const DataTypes = db.Sequelize;
 
-const schema = new Schema({
-  name: { type: String, required: true, trim: true }
+module.exports = db.define('artist', {
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    set: function (val) {
+      this.setDataValue('name', val.trim());
+    }
+  }
+}, {
+  instanceMethods: {
+    getAlbums: function () {
+      return db.model('album').findAll({
+        include: [{
+          model: db.model('song'),
+          include: [{
+            model: db.model('artist'),
+            where: { id: this.id } // makes this entire query an inner join
+          }]
+        }]
+      });
+    }
+  }
 });
-
-schema.methods.getSongs = function () {
-  return mongoose
-  .model('Song')
-  .find({ artists: this._id })
-  .populate('artists');
-};
-
-schema.methods.getAlbums = function () {
-  return mongoose
-  .model('Album')
-  .find({ artists: this._id });
-};
-
-schema.plugin(findOrCreate);
-
-module.exports = mongoose.model('Artist', schema);

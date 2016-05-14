@@ -1,26 +1,17 @@
 'use strict';
-var Promise = require('bluebird');
-var path = require('path');
-var chalk = require('chalk');
+const db = require('./db');
+const chalk = require('chalk');
 
-var DATABASE_URI = require(path.join(__dirname, '../env')).DATABASE_URI;
-
-var mongoose = require('mongoose');
-var db = mongoose.connect(DATABASE_URI).connection;
-
-// Require our models -- these should register the model into mongoose
-// so the rest of the application can simply call mongoose.model('User')
-// anywhere the User model needs to be used.
+// Require our models. Running each module registers the model into sequelize
+// so any other part of the application can simply call sequelize.model('User')
+// to get access to the User model.
 require('./models');
 
-var startDbPromise = new Promise(function (resolve, reject) {
-  db.on('open', resolve);
-  db.on('error', reject);
+// Syncing all the models at once. This promise is used by main.js.
+var syncedDbPromise = db.sync();
+
+syncedDbPromise.then(function () {
+  console.log(chalk.green('Sequelize models synced to PostgreSQL'));
 });
 
-console.log(chalk.yellow('Opening connection to MongoDB . . .'));
-startDbPromise.then(function () {
-  console.log(chalk.green('MongoDB connection opened!'));
-});
-
-module.exports = startDbPromise;
+module.exports = syncedDbPromise;

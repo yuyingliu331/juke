@@ -7,5 +7,5 @@
  */
 
 module.exports = {
-  'DATABASE_URI': process.env.MONGOLAB_URI
+  'DATABASE_URI': process.env.POSTGRESQL_URI
 };

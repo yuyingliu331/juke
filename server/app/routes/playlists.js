@@ -2,38 +2,31 @@
 
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
+const models = require('../../db/models');
+const Playlist = models.Playlist;
 module.exports = router;
 
 router.get('/', function (req, res, next) {
-  mongoose.model('Playlist')
-  .find(req.query)
-  .then(function (playlists) {
-    res.json(playlists);
-  })
-  .then(null, next);
+  Playlist.findAll({ where: req.query })
+  .then(playlists => res.json(playlists))
+  .catch(next);
 });
 
 router.post('/', function (req, res, next) {
-  mongoose.model('Playlist')
-  .create(req.body)
-  .then(function (playlist) {
-    res.status(201).json(playlist);
-  })
-  .then(null, next);
+  Playlist.create(req.body)
+  .then(playlist => res.status(201).json(playlist))
+  .catch(next);
 });
 
 router.param('playlistId', function (req, res, next, id) {
-  mongoose.model('Playlist')
-  .findById(id)
-  .populate('artists songs')
-  .deepPopulate('songs.artists')
-  .then(function (playlist) {
+  Playlist.scope('populated').findById(id)
+  .then(playlist => {
     if(!playlist) throw new Error('not found!');
     req.playlist = playlist;
     next();
+    return null; // silences bluebird warning about promises inside of next
   })
-  .then(null, next);
+  .catch(next);
 });
 
 router.get('/:playlistId', function (req, res) {
@@ -41,37 +34,38 @@ router.get('/:playlistId', function (req, res) {
 });
 
 router.put('/:playlistId', function (req, res, next) {
-  req.playlist.set(req.body);
-  req.playlist.save()
-  .then(function (playlist) {
-    res.status(200).json(playlist);
-  })
-  .then(null, next);
+  req.playlist.update(req.body)
+  .then(playlist => res.status(200).json(playlist))
+  .catch(next);
 });
 
 router.delete('/:playlistId', function (req, res, next) {
-  req.playlist.remove()
-  .then(function () {
-    res.status(204).end();
-  })
-  .then(null, next);
+  req.playlist.destroy()
+  .then(() => res.status(204).end())
+  .catch(next);
 });
 
-router.get('/:playlistId/songs', (req, res) => res.json(req.playlist.songs) );
+router.get('/:playlistId/songs', (req, res) => res.json(req.playlist.songs));
 
 router.post('/:playlistId/songs', function (req, res, next) {
-  req.playlist.songs.addToSet(req.body.song);
-  req.playlist.save()
-  .then( () => mongoose.model('Song').findById(req.body.song._id || req.body.song).populate('artists') )
-  .then( song => res.status(201).json(song) )
-  .then(null, next);
+  req.playlist.addSong(req.body.id || req.body.song.id)
+  .then(result => {
+    if (result[0]) res.status(201).json(result);
+    else res.status(409).send('Song is already in the playlist.');
+  })
+  .catch(next);
+});
+
+router.get('/:playlistId/songs/:songId', function (req, res) {
+  const song = req.playlist.songs.find(function (song) {
+    return song.id === Number(req.params.songId);
+  });
+  if (!song) res.sendStatus(404);
+  else res.json(song);
 });
 
 router.delete('/:playlistId/songs/:songId', function (req, res, next) {
-  req.playlist.songs.pull(req.params.songId);
-  req.playlist.save()
-  .then(function () {
-    res.status(204).end();
-  })
-  .then(null, next);
+  req.playlist.removeSong(req.params.songId)
+  .then(() => res.sendStatus(204))
+  .catch(next);
 });

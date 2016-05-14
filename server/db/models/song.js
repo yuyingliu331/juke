@@ -1,27 +1,40 @@
 'use strict';
 
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+const db = require('../db');
+const DataTypes = db.Sequelize;
 
-const schema = new Schema({
-  name: { type: String, required: true, trim: true },
-  artists: [{ type: Schema.Types.ObjectId, ref: 'Artist' }],
-  genres: [String],
-  buffer: { type: Buffer, required: true, select: false },
-  extension: { type: String, required: true },
-  size: { type: Number, required: true }
+module.exports = db.define('song', {
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    set: function (val) {
+      this.setDataValue('name', val.trim());
+    }
+  },
+  genres: {
+    type: DataTypes.ARRAY(DataTypes.STRING)
+  },
+  extension: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  size: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  buffer: {
+    type: DataTypes.BLOB, // sequelize alias, but in postgres actually `bytea`
+    allowNull: false
+  }
+}, {
+  defaultScope: {
+    attributes: {
+      include: ['albumId'], // excluded by default, need for `song.getAlbum()`
+      exclude: ['buffer']
+    },
+    include: [{
+      // defaultScope can't be func, so song must come after artist definition
+      model: db.model('artist')
+    }]
+  }
 });
-
-schema.methods.getAlbums = function () {
-  return mongoose
-  .model('Album')
-  .find({ songs: this._id });
-};
-
-schema.methods.getPlaylists = function () {
-  return mongoose
-  .model('Playlist')
-  .find({ playlists: this._id });
-};
-
-module.exports = mongoose.model('Song', schema);

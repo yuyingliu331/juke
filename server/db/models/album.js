@@ -1,21 +1,44 @@
-const mongoose = require('mongoose');
-const songListPlugin = require('../plugins/songList');
-const findOrCreate = require('../plugins/findOrCreate');
-const deepPopulate = require('mongoose-deep-populate')(mongoose);
+'use strict';
 
-const Schema = mongoose.Schema;
+const db = require('../db');
+const addArtistList = require('./plugins/addArtistList');
+const DataTypes = db.Sequelize;
 
-var schema = new Schema({
-  name: { type: String, required: true, trim: true },
-  cover: {type: Buffer, select: false },
-  coverType: { type: String, select: false }
+module.exports = db.define('album', {
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    set: function (val) {
+      this.setDataValue('name', val.trim());
+    }
+  },
+  cover: {
+    type: DataTypes.BLOB
+  },
+  coverType: {
+    type: DataTypes.STRING
+  },
+  artists: {
+    type: DataTypes.VIRTUAL
+  }
+}, {
+  defaultScope: {
+    attributes: { exclude: ['cover', 'coverType'] }
+  },
+  scopes: {
+    populated: () => ({ // function form lets us use to-be-defined models
+      include: [{
+        model: db.model('song') // populated with artists due to song model
+      }]
+    })
+  },
+  instanceMethods: {
+    addArtistList: addArtistList
+  },
+  hooks: { // automatically adds an artist list if we have songs
+    afterFind: function (queryResult) {
+      if (!Array.isArray(queryResult)) queryResult = [queryResult];
+      queryResult.forEach(item => item.addArtistList());
+    }
+  }
 });
-
-// this plugin gives it song and artist arrays
-// with some fancy validations and auto population
-// check it out!
-schema.plugin(songListPlugin);
-schema.plugin(findOrCreate);
-schema.plugin(deepPopulate);
-
-module.exports = mongoose.model('Album', schema);

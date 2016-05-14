@@ -12,14 +12,13 @@ const pathLib = require('path');
 const _ = require('lodash');
 const Promise = require('bluebird');
 const fs = require('fs-extra');
-const mongoose = require('mongoose');
 const chalk = require('chalk');
 // custom modules
 const helper = require('./helper');
 const metadata = require('./metadataWrapper');
-const connectToDb = require('../server/db');
+const db = require('../server/db/db');
+const models = require('../server/db/models');
 
-const Song = mongoose.model('Song');
 Promise.promisifyAll(fs);
 
 const extractMetaData = function (path) {
@@ -28,73 +27,82 @@ const extractMetaData = function (path) {
     .map(name => metadata(name));
 };
 
-const clearDb = function () {
-  return Promise.map(['Artist', 'Album', 'Song'], function (modelName) {
-    return mongoose.model(modelName).remove();
-  });
-};
-
 function formatSize (bytes) {
   return Math.round(bytes/1000)/1000 + ' MB';
 }
 
-connectToDb.bind({ docsToSave: {} })
-.then(function () { // get song metadata and clear db at same time
+Promise.resolve(db.drop({ cascade: true })) // clear the database
+.bind({ docsToSave: {} })
+.then(function () { // get song metadata and sync db at same time
   console.log('reading file metadata and emptying database');
-  return Promise.join(extractMetaData(dir), clearDb());
+  return Promise.join(extractMetaData(dir), db.sync({ force: true }));
 })
-.spread(function (metaData, removeResponses) { // create the artists
+.spread(function (metaData) { // create the artists
   console.log('creating unique artists by name');
-  this.files = metaData;
-  let artists = _(this.files)
+  this.analyzedFiles = metaData;
+  let artists = _(this.analyzedFiles)
     .pluck('artist')
     .flatten()
     .uniq()
     .value();
   return Promise.map(artists, function (artist) {
-    return mongoose.model('Artist').findOrCreate({ name: artist });
+    return models.Artist.findOrCreate({ where: { name: artist } })
+    .then(artists => artists[0]);
   });
 })
 .then(function (artists) { // create the albums
   console.log('creating albums by name');
-  this.artists = _.indexBy(artists, 'name');
-  let albums = _(this.files)
+  this.artists = _.indexBy(artists, instance => instance.dataValues.name);
+  let albums = _(this.analyzedFiles)
     .pluck('album')
     .uniq()
     .value();
   return Promise.map(albums, function (album) {
-    return mongoose.model('Album').findOrCreate({ name: album });
+    return models.Album.findOrCreate({ where: { name: album } })
+    .then(albums => albums[0]);
   });
 })
-.then(function (albums) { // create the songs
+.then(function (albums) {
+  this.albums = _.indexBy(albums, instance => instance.dataValues.name);
+})
+.then(function () { // create the songs
   console.log('creating songs and reading in files');
-  this.albums = _.indexBy(albums, 'name');
   this.totalSize = 0;
-  let songs = this.files.map(function (file) {
-    file.song = new Song({
+  let allSongsProcessed = this.analyzedFiles.map(function (file) {
+    // create initial un-persisted song instance
+    file.song = models.Song.build({
       name: file.title,
-      artists: file.artist.map(a => this.artists[a], this),
       genres: file.genre,
       extension: pathLib.extname(file.path),
     });
+    // determine foreign keys
+    let artistIds = file.artist.map(artist => this.artists[artist].dataValues.id);
+    let albumId = this.albums[file.album].dataValues.id;
+    // save binary data into song
     return fs.readFileAsync(file.path)
     .then(buffer => {
-      console.log(chalk.grey(file.song.name + ' — ' + formatSize(buffer.length)));
+      console.log(chalk.grey('read ' + file.song.name));
       this.totalSize += buffer.length;
       file.song.buffer = buffer;
       file.song.size = buffer.length;
       return file.song.save();
+    })
+    .then(song => {
+      file.song = song;
+      console.log(chalk.green('✓') + chalk.grey(' saved ' + song.name + ' — ' + formatSize(song.size)));
+      // write to the song-artist & song-album join tables
+      let madeArtistAssociations = song.addArtists(artistIds);
+      let madeAlbumAssociation = song.setAlbum(albumId);
+      return Promise.all([madeArtistAssociations, madeAlbumAssociation]);
     });
   }, this);
-  return Promise.all(songs);
+  return Promise.all(allSongsProcessed);
 })
-.then(function () { //associate the songs with their albums
-  // push into albums' song arrays
-  console.log('seeded ' + this.files.length + ' songs (' + formatSize(this.totalSize) + ')');
-  console.log('adding songs to each album');
-  this.files.forEach(file => {
+.then(function () {
+  console.log('seeded ' + this.analyzedFiles.length + ' songs (' + formatSize(this.totalSize) + ')');
+  console.log('adding covers to albums based on song data');
+  this.analyzedFiles.forEach(file => {
     var album = this.albums[file.album];
-    album.songs.push(file.song);
     if (file.picture && file.picture.data) {
       album.cover = file.picture.data;
       album.coverType = file.picture.format;

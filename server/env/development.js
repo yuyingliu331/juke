@@ -1,3 +1,3 @@
 module.exports = {
-  "DATABASE_URI": "mongodb://localhost:27017/juke"
+  'DATABASE_URI': 'postgres://localhost:5432/juke'
 };

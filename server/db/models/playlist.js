@@ -1,16 +1,38 @@
-const mongoose = require('mongoose');
-const songListPlugin = require('../plugins/songList');
-const Schema = mongoose.Schema;
-const deepPopulate = require('mongoose-deep-populate')(mongoose);
+'use strict';
 
-const schema = new Schema({
-  name: { type: String, required: true, trim: true },
+const db = require('../db');
+const addArtistList = require('./plugins/addArtistList');
+const DataTypes = db.Sequelize;
+
+module.exports = db.define('playlist', {
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    set: function (val) {
+      this.setDataValue('name', val.trim());
+    }
+  },
+  artists: {
+    type: DataTypes.VIRTUAL
+  }
+}, {
+  scopes: {
+    populated: () => ({ // function form lets us refer to undefined models
+      include: [{
+        model: db.model('song'),
+        include: [{
+          model: db.model('artist'),
+        }]
+      }]
+    })
+  },
+  instanceMethods: {
+    addArtistList: addArtistList
+  },
+  hooks: { // automatically adds an artist list if we have songs
+    afterFind: function (queryResult) {
+      if (!Array.isArray(queryResult)) queryResult = [queryResult];
+      queryResult.forEach(item => item.addArtistList());
+    }
+  }
 });
-
-// this plugin gives it song and artist arrays
-// with some fancy validations and auto population
-// check it out!
-schema.plugin(songListPlugin);
-schema.plugin(deepPopulate);
-
-module.exports = mongoose.model('Playlist', schema);

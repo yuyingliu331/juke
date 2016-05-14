@@ -1,5 +1,6 @@
 'use strict';
 var rangeStream = require('range-stream');
+var sbuff = require('simple-bufferstream');
 
 // the generic handler for serving up partial streams
 function sendSeekable (stream, config, req, res, next) {
@@ -7,6 +8,7 @@ function sendSeekable (stream, config, req, res, next) {
     var err = new Error('send-seekable requires `length` option');
     return next(err);
   }
+  if (stream instanceof Buffer) stream = sbuff(stream);
   // indicate this resource can be partially requested
   res.set('Accept-Ranges', 'bytes');
   // incorporate config
