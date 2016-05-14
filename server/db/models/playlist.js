@@ -27,7 +27,13 @@ module.exports = db.define('playlist', {
     })
   },
   instanceMethods: {
-    addArtistList: addArtistList
+    addArtistList: addArtistList,
+    addAndReturnSong: function (songId) { // `addSong` doesn't promise a song.
+      const addedToList = this.addSong(songId);
+      const songFromDb = db.model('song').findById(songId);
+      return DataTypes.Promise.all([addedToList, songFromDb])
+      .spread((result, song) => song);
+    }
   },
   hooks: { // automatically adds an artist list if we have songs
     afterFind: function (queryResult) {

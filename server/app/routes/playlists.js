@@ -1,5 +1,6 @@
 'use strict';
 
+const Promise = require('bluebird');
 const express = require('express');
 const router = express.Router();
 const models = require('../../db/models');
@@ -48,12 +49,16 @@ router.delete('/:playlistId', function (req, res, next) {
 router.get('/:playlistId/songs', (req, res) => res.json(req.playlist.songs));
 
 router.post('/:playlistId/songs', function (req, res, next) {
-  req.playlist.addSong(req.body.id || req.body.song.id)
-  .then(result => {
-    if (result[0]) res.status(201).json(result);
-    else res.status(409).send('Song is already in the playlist.');
-  })
-  .catch(next);
+  const id = req.body.id || req.body.song.id;
+  req.playlist.addAndReturnSong(id)
+  .then(song => res.status(201).json(song))
+  .catch(err => {
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      res.status(409).send('Song is already in the playlist.');
+    } else {
+      next(err);
+    }
+  });
 });
 
 router.get('/:playlistId/songs/:songId', function (req, res) {
