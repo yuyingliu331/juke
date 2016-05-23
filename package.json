@@ -7,7 +7,8 @@
     "start": "nodemon --watch server -e js,html server/start.js",
     "seed": "node ./bin/seed",
     "db-init": "./db-init.sh",
-    "postinstall": "npm run db-init"
+    "postinstall": "npm run db-init",
+    "test": "./node_modules/.bin/mocha server/**/*.test.js --reporter spec"
   },
   "dependencies": {
     "babel": "^5.0.12",
@@ -28,5 +29,9 @@
     "sequelize": "3.23.0",
     "serve-favicon": "^2.2.0",
     "simple-bufferstream": "1.0.0"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.5.1"
   }
 }
