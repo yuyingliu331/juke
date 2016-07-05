@@ -27,9 +27,13 @@ const extractMetaData = function (path) {
     .map(name => metadata(name));
 };
 
+const B_PER_KB = 1000;
+const KB_PER_MB = 1000;
 function formatSize (bytes) {
-  return Math.round(bytes/1000)/1000 + ' MB';
+  return Math.round(bytes / B_PER_KB) / KB_PER_MB + ' MB';
 }
+
+const start = new Date();
 
 Promise.resolve(db.drop({ cascade: true })) // clear the database
 .bind({ docsToSave: {} })
@@ -40,30 +44,30 @@ Promise.resolve(db.drop({ cascade: true })) // clear the database
 .spread(function (metaData) { // create the artists
   console.log('creating unique artists by name');
   this.analyzedFiles = metaData;
-  let artists = _(this.analyzedFiles)
-    .pluck('artist')
+  let artistNames = _(this.analyzedFiles)
+    .map('artist')
     .flatten()
     .uniq()
     .value();
-  return Promise.map(artists, function (artist) {
-    return models.Artist.findOrCreate({ where: { name: artist } })
+  return Promise.map(artistNames, function (artistName) {
+    return models.Artist.findOrCreate({ where: { name: artistName } })
     .then(artists => artists[0]);
   });
 })
 .then(function (artists) { // create the albums
   console.log('creating albums by name');
-  this.artists = _.indexBy(artists, instance => instance.dataValues.name);
-  let albums = _(this.analyzedFiles)
-    .pluck('album')
+  this.artists = _.keyBy(artists, instance => instance.dataValues.name);
+  let albumNames = _(this.analyzedFiles)
+    .map('album')
     .uniq()
     .value();
-  return Promise.map(albums, function (album) {
-    return models.Album.findOrCreate({ where: { name: album } })
+  return Promise.map(albumNames, function (albumName) {
+    return models.Album.findOrCreate({ where: { name: albumName } })
     .then(albums => albums[0]);
   });
 })
 .then(function (albums) {
-  this.albums = _.indexBy(albums, instance => instance.dataValues.name);
+  this.albums = _.keyBy(albums, instance => instance.dataValues.name);
 })
 .then(function () { // create the songs
   console.log('creating songs and reading in files');
@@ -114,16 +118,21 @@ Promise.resolve(db.drop({ cascade: true })) // clear the database
   // save albums
   let albums = _(this.albums)
     .values()
-    .invoke('save')
+    .invokeMap('save')
     .value();
   return Promise.all(albums);
 })
-.then(function () {
-  console.log(chalk.green('seeding complete!'));
-  process.exit(0);
+.then(function (saved) {
+  console.log(chalk.green(`seeding of ${saved.length} albums complete!`));
 })
 .catch(function (err) {
   console.error(chalk.red(err));
   console.error(err.stack);
-  process.exit(1);
+})
+.finally(function () {
+  const end = new Date();
+  console.log('Terminated after %ds', (end - start) / 1000);
+  // Sequelize holds the connection open for ~10 secs unless we tell it not to
+  db.close(); // uses but does not return a promise
+  return null; // silences Bluebird warning about non-returned promise
 });

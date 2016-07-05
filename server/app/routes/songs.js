@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const mime = require('mime');
 const chalk = require('chalk');
-const sendSeekable = require('./middleware/sendSeekable');
+const sendSeekable = require('send-seekable');
 const models = require('../../db/models');
 const Song = models.Song;
 
