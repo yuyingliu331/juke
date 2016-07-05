@@ -1,8 +1,8 @@
 'use strict';
 
 const db = require('../db');
-const addArtistList = require('./plugins/addArtistList');
 const DataTypes = db.Sequelize;
+const unique = require('./plugins/unique-through');
 
 module.exports = db.define('playlist', {
   name: {
@@ -12,9 +12,8 @@ module.exports = db.define('playlist', {
       this.setDataValue('name', val.trim());
     }
   },
-  artists: {
-    type: DataTypes.VIRTUAL
-  }
+  artists: unique('artists').through('songs')
+
 }, {
   scopes: {
     populated: () => ({ // function form lets us refer to undefined models
@@ -27,20 +26,12 @@ module.exports = db.define('playlist', {
     })
   },
   instanceMethods: {
-    addArtistList: addArtistList,
     addAndReturnSong: function (songId) { // `addSong` doesn't promise a song.
       songId = String(songId);
       const addedToList = this.addSong(songId);
       const songFromDb = db.model('song').findById(songId);
       return DataTypes.Promise.all([addedToList, songFromDb])
       .spread((result, song) => song);
-    }
-  },
-  hooks: { // automatically adds an artist list if we have songs
-    afterFind: function (queryResult) {
-      if (!queryResult) return;
-      if (!Array.isArray(queryResult)) queryResult = [queryResult];
-      queryResult.forEach(item => item.addArtistList());
     }
   }
 });

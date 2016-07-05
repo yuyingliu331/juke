@@ -1,8 +1,8 @@
 'use strict';
 
 const db = require('../db');
-const addArtistList = require('./plugins/addArtistList');
 const DataTypes = db.Sequelize;
+const unique = require('./plugins/unique-through')
 
 module.exports = db.define('album', {
   name: {
@@ -18,9 +18,7 @@ module.exports = db.define('album', {
   coverType: {
     type: DataTypes.STRING
   },
-  artists: {
-    type: DataTypes.VIRTUAL
-  }
+  artists: unique('artists').through('songs')
 }, {
   defaultScope: {
     attributes: { exclude: ['cover', 'coverType'] }
@@ -28,18 +26,8 @@ module.exports = db.define('album', {
   scopes: {
     populated: () => ({ // function form lets us use to-be-defined models
       include: [{
-        model: db.model('song') // populated with artists due to song model
+        model: db.model('song'), // populated with artists due to song model
       }]
     })
-  },
-  instanceMethods: {
-    addArtistList: addArtistList
-  },
-  hooks: { // automatically adds an artist list if we have songs
-    afterFind: function (queryResult) {
-      if (!queryResult) return;
-      if (!Array.isArray(queryResult)) queryResult = [queryResult];
-      queryResult.forEach(item => item.addArtistList());
-    }
   }
 });
