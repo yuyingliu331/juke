@@ -4,6 +4,7 @@ const db = require('../db');
 const DataTypes = db.Sequelize;
 
 module.exports = db.define('artist', {
+
   name: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -11,7 +12,9 @@ module.exports = db.define('artist', {
       this.setDataValue('name', val.trim());
     }
   }
+
 }, {
+
   instanceMethods: {
     getAlbums: function () {
       return db.model('album').findAll({
@@ -25,4 +28,5 @@ module.exports = db.define('artist', {
       });
     }
   }
+
 });

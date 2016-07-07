@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const router = express.Router();
+const router = new express.Router();
 const models = require('../../db/models');
 const Artist = models.Artist;
 module.exports = router;

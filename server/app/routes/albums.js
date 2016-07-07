@@ -2,13 +2,13 @@
 
 const express = require('express');
 const mime = require('mime');
-const router = express.Router();
+const router = new express.Router();
 const models = require('../../db/models');
 const Album = models.Album;
 module.exports = router;
 
 router.get('/', function (req, res, next) {
-  Album.findAll({ where: req.query })
+  Album.scope('defaultScope', 'songIds').findAll({ where: req.query })
   .then(albums => res.json(albums))
   .catch(next);
 });

@@ -1,4 +1,6 @@
 'use strict';
+/* eslint-disable global-require */
+
 var chalk = require('chalk');
 
 // Requires in ./db/index.js -- which returns a promise that represents

@@ -1,8 +1,7 @@
 'use strict';
 
-const Promise = require('bluebird');
 const express = require('express');
-const router = express.Router();
+const router = new express.Router();
 const models = require('../../db/models');
 const Playlist = models.Playlist;
 module.exports = router;
@@ -22,7 +21,7 @@ router.post('/', function (req, res, next) {
 router.param('playlistId', function (req, res, next, id) {
   Playlist.scope('populated').findById(id)
   .then(playlist => {
-    if(!playlist) throw new Error('not found!');
+    if (!playlist) throw new Error('not found!');
     req.playlist = playlist;
     next();
     return null; // silences bluebird warning about promises inside of next
@@ -56,17 +55,17 @@ router.post('/:playlistId/songs', function (req, res, next) {
     if (err.name === 'SequelizeUniqueConstraintError') {
       res.status(409).send('Song is already in the playlist.');
     } else {
-      next(err);
+      return next(err);
     }
   });
 });
 
 router.get('/:playlistId/songs/:songId', function (req, res) {
-  const song = req.playlist.songs.find(function (song) {
+  const requestedSong = req.playlist.songs.find(function (song) {
     return song.id === Number(req.params.songId);
   });
-  if (!song) res.sendStatus(404);
-  else res.json(song);
+  if (!requestedSong) res.sendStatus(404);
+  else res.json(requestedSong);
 });
 
 router.delete('/:playlistId/songs/:songId', function (req, res, next) {

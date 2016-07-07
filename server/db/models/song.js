@@ -1,4 +1,5 @@
 'use strict';
+/* eslint-disable new-cap */
 
 const db = require('../db');
 const DataTypes = db.Sequelize;
@@ -30,11 +31,14 @@ module.exports = db.define('song', {
   defaultScope: {
     attributes: {
       include: ['albumId'], // excluded by default, need for `song.getAlbum()`
-      exclude: ['buffer']
-    },
-    include: [{
-      // defaultScope can't be func, so song must come after artist definition
-      model: db.model('artist')
-    }]
+      exclude: ['buffer'],
+    }
+  },
+  scopes: {
+    populated: () => ({ // function form lets us use to-be-defined models
+      include: [{
+        model: db.model('artist')
+      }]
+    })
   }
 });

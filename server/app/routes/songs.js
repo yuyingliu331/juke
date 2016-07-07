@@ -1,7 +1,7 @@
 'use strict';
 
 const express = require('express');
-const router = express.Router();
+const router = new express.Router();
 const mime = require('mime');
 const chalk = require('chalk');
 const sendSeekable = require('send-seekable');
@@ -11,15 +11,15 @@ const Song = models.Song;
 module.exports = router;
 
 router.get('/', function (req, res, next) {
-  Song.findAll({ where: req.query })
+  Song.scope('defaultScope', 'populated').findAll({ where: req.query })
   .then(songs => res.json(songs))
   .catch(next);
 });
 
 router.param('songId', function (req, res, next, id) {
-  Song.findById(id)
+  Song.scope('defaultScope', 'populated').findById(id)
   .then(song => {
-    if(!song) throw new Error('not found!');
+    if (!song) throw new Error('not found!');
     req.song = song;
     next();
     return null; // silences bluebird warning about promises inside of next
@@ -52,7 +52,7 @@ router.get('/:songId/image', function (req, res, next) {
  * the entire bytea column is loaded in memory by the driver (no streaming),
  * and the hex byte array is converted to binary (slow). We mitigate this
  * by (evilly) adding audio to an in-memory cache after first load, so that
- * subsequent requests — replaying a song, or seeking within a song — does not
+ * subsequent requests — replaying a song, or seeking within a song — does not
  * hit the slow db retrieval. That cache is lost on every server restart.
  *
  * In a real app, it would be far better to store the audio as files, and
@@ -63,7 +63,7 @@ router.get('/:songId/image', function (req, res, next) {
 const audioCache = {}; // stores entire song buffers; bad idea for production
 
 router.get('/:songId/audio', sendSeekable, function (req, res, next) {
-  if(!req.song.extension) return next(new Error('No audio for song'));
+  if (!req.song.extension) return next(new Error('No audio for song'));
   const id = req.params.songId;
   // caching to help overcome PSQL's sllloowwww byte array format
   const cached = audioCache[id];
