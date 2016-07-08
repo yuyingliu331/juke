@@ -46,10 +46,12 @@ describe('unique (deep: String) through (near: String)', ()=>{
         getSongsCalled: 0,
         get songs() {
           ++this.getSongsCalled
-          return []
+          return [
+            {artists: [{id: 1}]},
+            {artists: [{id: 2}]}
+          ]
         }
       }
-
       def.get.apply(spy)
       def.get.apply(spy)
       expect(spy.getSongsCalled).to.equal(1)
