@@ -2,7 +2,11 @@
 
 const Promise = require('bluebird');
 const fs = require('fs');
+const path = require('path');
 const mm = require('musicmetadata');
+
+const DEFAULT_ALBUM_COVER_PATH = path.join(__dirname, 'default-album.jpg');
+const defaultAlbumCoverBuffer = fs.readFileSync(DEFAULT_ALBUM_COVER_PATH);
 
 /*
 Omri & Zeke:
@@ -18,7 +22,10 @@ module.exports = function (name) {
       if (err) return reject(err);
 
       metadata.path = name;
-      metadata.picture = metadata.picture[0] || { data: new Buffer(0), format: 'jpg' };
+      metadata.picture = metadata.picture[0] || {
+        data: defaultAlbumCoverBuffer,
+        format: 'jpg'
+      };
       // replace data with a copy to prevent caching
       var secondPictureBuffer = new Buffer(metadata.picture.data.length);
       metadata.picture.data.copy(secondPictureBuffer);
