@@ -13,6 +13,9 @@ const Song = require('./song');
 
 Song.belongsTo(Album);
 Album.hasMany(Song);
+Album.belongsTo(Artist); // "Album Artist" is a thing, even if there are
+                         // other artists on the album.
+
 
 Artist.belongsToMany(Song, { through: 'artistSong' });
 Song.belongsToMany(Artist, { through: 'artistSong' });

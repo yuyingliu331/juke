@@ -1,38 +1,28 @@
 'use strict';
-/* eslint-disable new-cap */
 
 const db = require('../db');
 const DataTypes = db.Sequelize;
 
 module.exports = db.define('song', {
   name: {
-    type: DataTypes.STRING,
+    type: DataTypes.STRING(1e4), // eslint-disable-line new-cap
     allowNull: false,
     set: function (val) {
       this.setDataValue('name', val.trim());
     }
   },
-  genres: {
-    type: DataTypes.ARRAY(DataTypes.STRING)
-  },
-  extension: {
+  genre: {
     type: DataTypes.STRING,
+  },
+  url: {
+    type: DataTypes.STRING(1e4), // eslint-disable-line new-cap
     allowNull: false
   },
-  size: {
-    type: DataTypes.INTEGER,
-    allowNull: false
-  },
-  buffer: {
-    type: DataTypes.BLOB, // sequelize alias, but in postgres actually `bytea`
-    allowNull: false
-  }
 }, {
   defaultScope: {
     attributes: {
       include: ['albumId'], // excluded by default, need for `song.getAlbum()`
-      exclude: ['buffer'],
-    }
+    },
   },
   scopes: {
     populated: () => ({ // function form lets us use to-be-defined models

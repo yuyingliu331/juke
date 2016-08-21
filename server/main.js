@@ -30,5 +30,5 @@ startDb
 .then(startServer)
 .catch(function (err) {
     console.error(chalk.red(err.stack));
-    process.kill(1);
+    process.exit(1);
 });

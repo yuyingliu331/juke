@@ -15,7 +15,11 @@ router.get('/', function (req, res, next) {
 router.param('artistId', function (req, res, next, id) {
   Artist.findById(id)
   .then(artist => {
-    if (!artist) throw new Error('not found!');
+    if (!artist) {
+      const err = Error('Artist not found');
+      err.status = 404;
+      throw err
+    }
     req.artist = artist;
     next();
     return null; // silences bluebird warning about promises inside of next

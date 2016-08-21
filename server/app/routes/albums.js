@@ -2,7 +2,7 @@
 
 const express = require('express');
 const mime = require('mime');
-const router = new express.Router();
+const router = express.Router();
 const models = require('../../db/models');
 const Album = models.Album;
 module.exports = router;
@@ -16,7 +16,11 @@ router.get('/', function (req, res, next) {
 router.param('albumId', function (req, res, next, id) {
   Album.scope('defaultScope', 'populated').findById(id)
   .then(function (album) {
-    if (!album) throw new Error('not found!');
+    if (!album) {
+      const err = Error('Album not found');
+      err.status = 404;
+      throw err
+    }
     req.album = album;
     next();
     return null; // silences bluebird warning about promises inside of next
@@ -29,15 +33,7 @@ router.get('/:albumId', function (req, res) {
 });
 
 router.get('/:albumId/image', function (req, res, next) {
-  Album.findById(req.params.albumId, {
-    attributes: ['cover', 'coverType']
-  })
-  .then(function (album) {
-    if (!album.cover || !album.coverType) return next(new Error('no cover'));
-    res.set('Content-Type', mime.lookup(album.coverType));
-    res.send(album.cover);
-  })
-  .catch(next);
+  res.redirect(`/api/songs/${req.album.songs[0].id}/image`)
 });
 
 router.get('/:albumId/songs/', function (req, res) {

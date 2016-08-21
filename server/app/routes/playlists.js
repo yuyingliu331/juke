@@ -21,7 +21,11 @@ router.post('/', function (req, res, next) {
 router.param('playlistId', function (req, res, next, id) {
   Playlist.scope('populated').findById(id)
   .then(playlist => {
-    if (!playlist) throw new Error('not found!');
+    if (!playlist) {
+      const err = Error('Playlist not found');
+      err.status = 404;
+      throw err
+    }
     req.playlist = playlist;
     next();
     return null; // silences bluebird warning about promises inside of next
