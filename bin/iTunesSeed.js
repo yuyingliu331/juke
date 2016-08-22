@@ -15,6 +15,7 @@ const log = require('./log')
 const Promise = db.Promise
 const KEY = Symbol('key')
 const TRACKS = Symbol('TRACKS')
+const DEFAULT_TRACK_LIMIT = 500
 
 const program = require('commander')
 
@@ -24,6 +25,8 @@ program
                "By default, we'll import Juke's music.xml and your iTunes library.")
   .option('-f, --force', 'Force sync (will delete everything in the db)')
   .option('-n, --no-itunes', 'Skip importing iTunes library')
+  .option('-L, --limit <num>', `Limit total tracks imported to <num> (default ${DEFAULT_TRACK_LIMIT})`, parseInt)
+  .option('-u, --unlimited', 'Import unlimited tracks')
 
 function main() {
   program.parse(process.argv)
@@ -35,6 +38,8 @@ function main() {
     seeded: status.addItem('seeded', {color: 'blue'})
   }
   status.start({ label: 'XML tracks', invert: false, interval: 125 })
+
+  program[TRACKS] = program.unlimited ? Infinity : program.limit || DEFAULT_TRACK_LIMIT;
 
   db.sync({ force: program.force })
     .then(tablesAreReady => {
@@ -71,21 +76,24 @@ function importLibrary(iTunesXml) {
 
   return new Promise(resolve => {
 
-    fs.createReadStream(iTunesXml)
+    const xmlStream = fs.createReadStream(iTunesXml)
     .on('error', err => console.error(err))
-    .pipe(itunes.createTrackStream())
+
+    xmlStream.pipe(itunes.createTrackStream())
     .on('data', function(data) {
 
       status[TRACKS].total.inc(1)
 
       // Filter out...
       if (
+        (status[TRACKS].seeding.count >= program[TRACKS]) || // would be better to end stream, but `sax` does not handle .end correctly.
         !data.Location ||           // Songs from iCloud and TV shows and such, which won't have locations
         !data.Name ||               // Entries which don't have names for some reason?
         !data.Artist ||
         !data.Album ||
-        (data.Kind && data.Kind.indexOf('app') !== -1) || // Apps
-        (data.Kind && data.Kind.indexOf('audio') === -1) // non-songs
+        (data.Kind && data.Kind.indexOf('audio') === -1) || // non-songs
+        (data.Kind && data.Kind.indexOf('Apple Lossless') !== -1) || // ALAC files
+        (data.Kind && data.Kind.indexOf('app') !== -1) // Apps
       ) {
         status[TRACKS].skipped.inc(1)
         return
