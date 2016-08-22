@@ -6,24 +6,72 @@
     <link href="/bootstrap-dark.css" rel="stylesheet" />
     <link href="/style.css" rel="stylesheet" />
   </head>
-  <body>
+  <body ng-app="music">
     <div id="main" class="container-fluid">
 
-      <div class="col-xs-2">
+      <div ng-controller="musicHandler" class="col-xs-2">
         <sidebar>
+          
+        <p><button ng-click="showIt = !showIt">Do you dare?</button></p>
+        <p><h4>Here's to you, Yuying!</h4><img ng-show="showIt" src="http://fillmurray.com/500/500"></p>
           <img src="juke.svg" class="logo">
           <section>
             <h4 class="menu-item active">
+              {{ role }}
               <a href="#">ALBUMS</a>
             </h4>
           </section>
         </sidebar>
+        
       </div>
 
-      <div class="col-xs-10"></div>
+      <div ng-controller="musicHandler" class="col-xs-10"><div class="album">
+        <p>
+          <h3>{{ fakeAlbum.name }}</h3>
+          <img src="{{ fakeAlbum.imageUrl }}" class="img-thumbnail">
+        </p>
+        <table class='table'>
+          <thead>
+            <tr>
+              <th></th>
+              <th>Name</th>
+              <th>Artists</th>
+              <th>Genre</th>
+            </tr>
+          </thead>
+          <tbody>
+              
+              <tr ng-repeat = "song in fakeAlbum.songs">
+                <td>
+                <button class="btn btn-default btn-xs">
+                  <span class="glyphicon glyphicon-play"></span>
+                </button>
+                </td >
+                <td> {{ song.name }}</td>
+                <td ng-repeat = "artist in song.artists">{{ artist.name }}</td>
+                <td>{{ song.genre }}</td>
+              <!--<td> {{ song.artists }}</td>-->
+              <!--<td>I SHOULD BE A SONG GENRE</td>-->
+            </tr>
+            <tr>
+              <td>
+                <button class="btn btn-default btn-xs">
+                  <span class="glyphicon glyphicon-play"></span>
+                </button>
+              </td>
+              <td>I SHOULD BE ANOTHER SONG NAME</td>
+              <td>I SHOULD BE A STRING OF THAT SONG'S ARTISTS</td>
+              <td>I SHOULD BE A SONG GENRE</td>
+            </tr>
+          </tbody>
+        </table>
+</div></div>
+      
 
       <footer></footer>
 
     </div>
+    <script src = '/angular/angular.js'></script>
+    <script src = '/app.js'></script>
   </body>
 </html>
