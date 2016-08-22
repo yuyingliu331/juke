@@ -28,6 +28,19 @@ program
   .option('-L, --limit <num>', `Limit total tracks imported to <num> (default ${DEFAULT_TRACK_LIMIT})`, parseInt)
   .option('-u, --unlimited', 'Import unlimited tracks')
 
+function checkItunes () {
+  return new Promise((resolve, reject) => {
+    try {
+      const xmlPath = path.resolve(userhome(), 'Music/iTunes/iTunes Music Library.xml')
+      fs.stat(xmlPath, (err, stats) => {
+        resolve(!err && stats.isFile() && xmlPath)
+      })
+    } catch (err) {
+      reject(err)
+    }
+  })
+}
+
 function main() {
   program.parse(process.argv)
 
@@ -41,11 +54,11 @@ function main() {
 
   program[TRACKS] = program.unlimited ? Infinity : program.limit || DEFAULT_TRACK_LIMIT;
 
-  db.sync({ force: program.force })
-    .then(tablesAreReady => {
+  Promise.all([db.sync({ force: program.force }), checkItunes()])
+    .spread((tablesAreReady, xmlPath) => {
       const imported = program.args.concat(
         path.resolve(__dirname, '..', 'music.xml'),
-        program.itunes && path.resolve(userhome(), 'Music/iTunes/iTunes Music Library.xml')
+        program.itunes && xmlPath
       ).map(importLibrary)
       return Promise.all(imported)
     })
