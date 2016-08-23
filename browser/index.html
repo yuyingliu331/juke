@@ -11,24 +11,24 @@
 
       <div ng-controller="musicHandler" class="col-xs-2">
         <sidebar>
-          
+
         <p><button ng-click="showIt = !showIt">Do you dare?</button></p>
         <p><h4>Here's to you, Yuying!</h4><img ng-show="showIt" src="http://fillmurray.com/500/500"></p>
           <img src="juke.svg" class="logo">
           <section>
             <h4 class="menu-item active">
               {{ role }}
-              <a href="#">ALBUMS</a>
+              <a href="#" >ALBUMS</a>
             </h4>
           </section>
         </sidebar>
-        
+
       </div>
 
-      <div ng-controller="musicHandler" class="col-xs-10"><div class="album">
+      <div ng-controller="albumHandler" class="col-xs-10"><div class="album">
         <p>
-          <h3>{{ fakeAlbum.name }}</h3>
-          <img src="{{ fakeAlbum.imageUrl }}" class="img-thumbnail">
+          <h3>{{ Album.name }}</h3>
+          <img src="{{ imageUrl }}" class="img-thumbnail">
         </p>
         <table class='table'>
           <thead>
@@ -40,35 +40,49 @@
             </tr>
           </thead>
           <tbody>
-              
-              <tr ng-repeat = "song in fakeAlbum.songs">
+
+              <tr ng-controller="playHandler" ng-repeat = "song in songs"  ng-class="{active: currentSong === song}">
                 <td>
-                <button class="btn btn-default btn-xs">
+                <button ng-click="start(song)" ng-hide="currentSong === song" class="btn btn-default btn-xs">
                   <span class="glyphicon glyphicon-play"></span>
                 </button>
                 </td >
                 <td> {{ song.name }}</td>
-                <td ng-repeat = "artist in song.artists">{{ artist.name }}</td>
+                <td>{{ song.artists[0].name }}</td>
                 <td>{{ song.genre }}</td>
               <!--<td> {{ song.artists }}</td>-->
               <!--<td>I SHOULD BE A SONG GENRE</td>-->
             </tr>
-            <tr>
-              <td>
-                <button class="btn btn-default btn-xs">
-                  <span class="glyphicon glyphicon-play"></span>
-                </button>
-              </td>
-              <td>I SHOULD BE ANOTHER SONG NAME</td>
-              <td>I SHOULD BE A STRING OF THAT SONG'S ARTISTS</td>
-              <td>I SHOULD BE A SONG GENRE</td>
-            </tr>
+           
+
           </tbody>
         </table>
+       
 </div></div>
-      
 
-      <footer></footer>
+
+  <footer >
+     
+      <div ng-if="showButton">
+       
+        <div  class="pull-left">
+          <button class="btn btn-default">
+            <span class="glyphicon glyphicon-step-backward"></span>
+          </button>
+          <button ng-click="pauseHandler" class="btn btn-default">
+            <span class="glyphicon glyphicon-pause"></span>
+          </button>
+          <button class="btn btn-default">
+            <span class="glyphicon glyphicon-step-forward"></span>
+          </button>
+        </div>
+        <div class="bar">
+            <div class="progress">
+              <div class="progress-bar"></div>
+            </div>
+          </div>
+      </div>
+</footer>
 
     </div>
     <script src = '/angular/angular.js'></script>
